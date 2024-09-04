@@ -1,4 +1,4 @@
-use crate::{constants, error, util::assert_exists};
+use crate::{constants, error, file::ToRead};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
@@ -64,16 +64,11 @@ impl Configuration {
   }
 
   pub fn read() -> Result<Self, error::DeepslateError> {
-    assert_exists(constants::CONFIGURATION)?;
-
-    Ok(toml::from_str(&fs::read_to_string(
-      constants::CONFIGURATION,
-    )?)?)
+    let file = ToRead::new(constants::CONFIGURATION)?;
+    Ok(toml::from_str(&file.read_to_string()?)?)
   }
 
   pub fn write(configuration: Self) -> Result<(), error::DeepslateError> {
-    assert_exists(constants::CONFIGURATION)?;
-
     Ok(fs::write(
       constants::CONFIGURATION,
       toml::to_string(&configuration)?,

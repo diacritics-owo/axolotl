@@ -6,16 +6,18 @@ extern crate log;
 mod configuration;
 mod constants;
 mod error;
+mod file;
 mod keys;
 mod util;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use configuration::{Changelog, Configuration, GitHub};
+use file::ToRead;
 use inquire::{Confirm, Editor, Text};
 use keys::Keys;
 use octocrab::Octocrab;
-use std::{env, fs, process};
-use util::{assert_exists, get_keys};
+use std::{env, process};
+use util::get_keys;
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -150,8 +152,8 @@ async fn run() -> Result<(), error::DeepslateError> {
         let changelog = match configuration.changelog {
           Some(changelog) => match changelog {
             Changelog::File { file } => {
-              assert_exists(file.clone())?;
-              Some(fs::read_to_string(file)?)
+              let file = ToRead::new(file)?;
+              Some(file.read_to_string()?)
             }
             Changelog::Editor => Some(Editor::new("Write the changelog").prompt()?),
           },
@@ -165,9 +167,7 @@ async fn run() -> Result<(), error::DeepslateError> {
           .artifact
           .pattern
           .replace(constants::VERSION_REPLACE, version.as_str());
-        let artifact = configuration.artifact.folder.join(asset_name.clone());
-
-        assert_exists(artifact.clone())?;
+        let artifact = ToRead::new(configuration.artifact.folder.join(asset_name.clone()))?;
 
         if let Some(GitHub {
           repo: (user, repo),
@@ -198,7 +198,7 @@ async fn run() -> Result<(), error::DeepslateError> {
             info!("Uploading artifact");
 
             let asset = releases
-              .upload_asset(release.id.0, &asset_name, fs::read(artifact)?.into())
+              .upload_asset(release.id.0, &asset_name, artifact.read_to_string()?.into())
               .label(&asset_name)
               .send()
               .await?;

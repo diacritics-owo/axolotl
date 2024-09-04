@@ -1,4 +1,4 @@
-use crate::{constants, error, util::assert_exists};
+use crate::{constants, error, file::ToRead};
 use age::{secrecy::Secret, Decryptor, Encryptor};
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -28,16 +28,11 @@ impl Keys {
   }
 
   pub fn read_raw() -> Result<Keys, error::DeepslateError> {
-    assert_exists(constants::KEYS.as_path())?;
-
-    return Ok(toml::from_str(
-      fs::read_to_string(constants::KEYS.as_path())?.as_str(),
-    )?);
+    let file = ToRead::new(constants::KEYS.as_path())?;
+    return Ok(toml::from_str(file.read_to_string()?.as_str())?);
   }
 
   pub fn write(keys: Keys) -> Result<(), error::DeepslateError> {
-    assert_exists(constants::KEYS.as_path())?;
-    
     Ok(fs::write(
       constants::KEYS.as_path(),
       toml::to_string(&keys)?,
