@@ -18,4 +18,5 @@ inquire = "0.7.5"
 lazy_static = "1.5.0"
 random-string = "1.1.0"
 serde = { version = "1.0.209", features = ["derive"] }
+thiserror = "1.0.63"
 toml = "0.8.19"

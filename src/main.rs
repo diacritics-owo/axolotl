@@ -1,4 +1,5 @@
 mod constants;
+mod error;
 mod keys;
 mod util;
 
@@ -41,25 +42,23 @@ enum EncryptionCommands {
   Disable,
 }
 
-// TODO: most (all?) errors encountered are fatal and should cause the program to fail, but we can at least fail nicely
-fn main() {
-  keys::initialize();
+fn main() -> Result<(), error::DeepslateError> {
+  keys::initialize()?;
 
   let arguments = Arguments::parse();
 
   match arguments.command {
     Commands::Keys { command } => {
-      let keys = keys::read();
+      let keys = keys::read_raw()?;
 
       match command {
         KeyCommands::Show => {
           if Confirm::new("Are you sure?")
             .with_default(false)
             .with_help_message("Your keys will be printed to stdout in plaintext form")
-            .prompt()
-            .unwrap()
+            .prompt()?
           {
-            println!("{}", util::get_keys().to_string());
+            println!("{}", util::get_keys()?.to_string());
           }
         }
         KeyCommands::Encryption { command } => match command {
@@ -67,14 +66,14 @@ fn main() {
             if keys.encrypted {
               println!("Your keys are already encrypted - disable and re-enable encryption to change the key")
             } else {
-              keys::write(keys.encrypted(util::read_key()))
+              keys::write(keys.encrypted(util::read_key()?)?)?
             }
           }
           Some(EncryptionCommands::Disable) => {
             if !keys.encrypted {
               println!("Your keys have not been encrypted")
             } else {
-              keys::write(keys.decrypted(util::read_key()))
+              keys::write(keys.decrypted(util::read_key()?)?)?
             }
           }
           None => println!(
@@ -89,4 +88,6 @@ fn main() {
       }
     }
   }
+
+  Ok(())
 }

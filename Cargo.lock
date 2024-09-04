@@ -397,6 +397,7 @@ dependencies = [
  "lazy_static",
  "random-string",
  "serde",
+ "thiserror",
  "toml 0.8.19",
 ]
 

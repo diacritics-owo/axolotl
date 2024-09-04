@@ -6,11 +6,11 @@ use std::{
   io::{Read, Write},
 };
 
-use crate::constants;
+use crate::{constants, error};
 
-pub fn initialize() {
+pub fn initialize() -> Result<(), error::DeepslateError> {
   if !constants::GLOBAL.as_path().exists() {
-    fs::create_dir(constants::GLOBAL.as_path()).unwrap();
+    fs::create_dir(constants::GLOBAL.as_path())?;
   }
 
   if !constants::KEYS.as_path().exists() {
@@ -18,25 +18,23 @@ pub fn initialize() {
       encrypted: false,
       modrinth: None,
       github: None,
-    });
+    })?;
   }
+
+  Ok(())
 }
 
-pub fn read() -> Keys {
-  let keys: Keys = toml::from_str(
-    fs::read_to_string(constants::KEYS.as_path())
-      .unwrap()
-      .as_str(),
-  )
-  .unwrap();
-
-  if keys.encrypted {}
-
-  return keys;
+pub fn read_raw() -> Result<Keys, error::DeepslateError> {
+  return Ok(toml::from_str(
+    fs::read_to_string(constants::KEYS.as_path())?.as_str(),
+  )?);
 }
 
-pub fn write(keys: Keys) {
-  fs::write(constants::KEYS.as_path(), toml::to_string(&keys).unwrap()).unwrap();
+pub fn write(keys: Keys) -> Result<(), error::DeepslateError> {
+  Ok(fs::write(
+    constants::KEYS.as_path(),
+    toml::to_string(&keys)?,
+  )?)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,51 +45,57 @@ pub struct Keys {
 }
 
 impl Keys {
-  pub fn encrypt(plaintext: String, key: String) -> String {
+  pub fn encrypt(plaintext: String, key: String) -> Result<String, error::DeepslateError> {
     let encryptor = Encryptor::with_user_passphrase(Secret::new(key));
 
     let mut encrypted = vec![];
-    let mut writer = encryptor.wrap_output(&mut encrypted).unwrap();
-    writer.write_all(plaintext.as_bytes()).unwrap();
-    writer.finish().unwrap();
+    let mut writer = encryptor.wrap_output(&mut encrypted)?;
+    writer.write_all(plaintext.as_bytes())?;
+    writer.finish()?;
 
-    BASE64_STANDARD.encode(encrypted)
+    Ok(BASE64_STANDARD.encode(encrypted))
   }
 
-  pub fn decrypt(encrypted: String, key: String) -> String {
-    let decryptor = BASE64_STANDARD.decode(encrypted).unwrap();
-    let decryptor = match Decryptor::new(&*decryptor).unwrap() {
+  pub fn decrypt(encrypted: String, key: String) -> Result<String, error::DeepslateError> {
+    let decryptor = BASE64_STANDARD.decode(encrypted)?;
+    let decryptor = match Decryptor::new(&*decryptor)? {
       Decryptor::Passphrase(d) => d,
       _ => unreachable!(),
     };
 
     let mut decrypted = vec![];
-    let mut reader = decryptor.decrypt(&Secret::new(key), None).unwrap();
-    reader.read_to_end(&mut decrypted).unwrap();
+    let mut reader = decryptor.decrypt(&Secret::new(key), None)?;
+    reader.read_to_end(&mut decrypted)?;
 
-    String::from_utf8(decrypted).unwrap()
+    Ok(String::from_utf8(decrypted)?)
   }
 
-  pub fn encrypted(&self, key: String) -> Self {
-    Keys {
+  pub fn encrypted(&self, key: String) -> Result<Keys, error::DeepslateError> {
+    Ok(Keys {
       encrypted: true,
-      modrinth: self
-        .modrinth
-        .clone()
-        .map(|token| Self::encrypt(token, key.clone())),
-      github: self.github.clone().map(|token| Self::encrypt(token, key)),
-    }
+      modrinth: match self.modrinth.clone() {
+        Some(token) => Some(Self::encrypt(token, key.clone())?),
+        None => None,
+      },
+      github: match self.github.clone() {
+        Some(token) => Some(Self::encrypt(token, key)?),
+        None => None,
+      },
+    })
   }
 
-  pub fn decrypted(&self, key: String) -> Self {
-    Keys {
+  pub fn decrypted(&self, key: String) -> Result<Keys, error::DeepslateError> {
+    Ok(Keys {
       encrypted: false,
-      modrinth: self
-        .modrinth
-        .clone()
-        .map(|token| Self::decrypt(token, key.clone())),
-      github: self.github.clone().map(|token| Self::decrypt(token, key)),
-    }
+      modrinth: match self.modrinth.clone() {
+        Some(token) => Some(Self::decrypt(token, key.clone())?),
+        None => None,
+      },
+      github: match self.github.clone() {
+        Some(token) => Some(Self::decrypt(token, key)?),
+        None => None,
+      },
+    })
   }
 
   pub fn to_string(&self) -> String {
