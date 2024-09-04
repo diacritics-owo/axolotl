@@ -2,5 +2,20 @@
 name = "deepslate"
 version = "0.1.0"
 edition = "2021"
+description = "A CLI tool for mod distribution"
 
 [dependencies]
+age = "0.10.0"
+base64 = "0.22.1"
+clap = { version = "4.5.16", features = ["derive"] }
+config = { version = "0.14.0", default-features = false, features = [
+  "toml",
+  "convert-case",
+  "async",
+] }
+dirs = "5.0.1"
+inquire = "0.7.5"
+lazy_static = "1.5.0"
+random-string = "1.1.0"
+serde = { version = "1.0.209", features = ["derive"] }
+toml = "0.8.19"
