@@ -20,7 +20,10 @@ pub fn get_keys() -> Result<(Keys, Option<String>), error::DeepslateError> {
 
   if keys.encrypted {
     let key = read_key()?;
-    return Ok((keys.decrypted(key.clone())?, Some(key)));
+    let mut keys = keys.decrypted(key.clone())?;
+    keys.encrypted = true;
+
+    return Ok((keys, Some(key)));
   }
 
   return Ok((keys, None));

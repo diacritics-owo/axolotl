@@ -1,15 +1,22 @@
+extern crate pretty_env_logger;
+
+#[macro_use]
+extern crate log;
+
 mod configuration;
 mod constants;
 mod error;
 mod keys;
 mod util;
 
-use std::{env::current_dir, fs};
-
 use clap::{Parser, Subcommand, ValueEnum};
 use configuration::{Changelog, Configuration};
 use inquire::{Confirm, Editor, Text};
 use keys::Keys;
+use std::{
+  env::{self, current_dir},
+  fs, process,
+};
 use util::get_keys;
 
 #[derive(Parser, Debug)]
@@ -98,22 +105,44 @@ enum Distributor {
   GitHub,
 }
 
-fn main() -> Result<(), error::DeepslateError> {
+fn main() {
+  match run() {
+    Ok(_) => (),
+    Err(error) => {
+      error!("{}", error);
+      process::exit(1);
+    }
+  }
+}
+
+fn run() -> Result<(), error::DeepslateError> {
+  env::set_var("RUST_LOG", "info");
+
+  pretty_env_logger::init();
   Keys::initialize()?;
 
   let arguments = Arguments::parse();
 
   match arguments.command {
     Commands::Mod { command } => match command {
-      ModCommands::Init => {
+      ModCommands::Init => 'init: {
         if Configuration::exists()? {
-          println!(
+          warn!(
             "Found pre-existing configuration file {}",
             constants::CONFIGURATION
           );
-        } else {
-          Configuration::write(Configuration::default())?;
+
+          if !Confirm::new("Overwrite?").prompt()? {
+            break 'init;
+          }
         }
+
+        Configuration::write(Configuration::default())?;
+
+        info!(
+          "The configuration file has been written to {}",
+          constants::CONFIGURATION
+        );
       }
       // TODO
       ModCommands::Publish => {
@@ -141,25 +170,27 @@ fn main() -> Result<(), error::DeepslateError> {
             .with_help_message("Your keys will be printed to stdout in plaintext form")
             .prompt()?
           {
-            println!("{:#?}", util::get_keys()?.0);
+            info!("{:#?}", util::get_keys()?.0);
           }
         }
         KeyCommands::Encryption { command } => match command {
           Some(EncryptionCommands::Enable) => {
             if raw.encrypted {
-              println!("Your keys are already encrypted - disable and re-enable encryption to change the key")
+              info!("Your keys are already encrypted - disable and re-enable encryption to change the key")
             } else {
-              Keys::write(raw.encrypted(util::read_key_confirmation(true)?)?)?
+              Keys::write(raw.encrypted(util::read_key_confirmation(true)?)?)?;
+              info!("Encryption has been enabled");
             }
           }
           Some(EncryptionCommands::Disable) => {
             if !raw.encrypted {
-              println!("Your keys have not been encrypted")
+              info!("Your keys have not been encrypted")
             } else {
-              Keys::write(raw.decrypted(util::read_key()?)?)?
+              Keys::write(raw.decrypted(util::read_key()?)?)?;
+              info!("Encryption has been disabled");
             }
           }
-          None => println!(
+          None => info!(
             "Encryption is {}",
             if raw.encrypted { "enabled" } else { "disabled" }
           ),
@@ -178,6 +209,8 @@ fn main() -> Result<(), error::DeepslateError> {
           }
 
           Keys::write(keys)?;
+
+          info!("The keys have been updated");
         }
         KeyCommands::Remove { distributor } => {
           let (mut keys, key) = get_keys()?;
@@ -192,6 +225,8 @@ fn main() -> Result<(), error::DeepslateError> {
           }
 
           Keys::write(keys)?;
+
+          info!("The keys have been updated");
         }
       }
     }
