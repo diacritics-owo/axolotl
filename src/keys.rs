@@ -1,3 +1,4 @@
+use crate::{constants, error};
 use age::{secrecy::Secret, Decryptor, Encryptor};
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -5,37 +6,6 @@ use std::{
   fs,
   io::{Read, Write},
 };
-
-use crate::{constants, error};
-
-pub fn initialize() -> Result<(), error::DeepslateError> {
-  if !constants::GLOBAL.as_path().exists() {
-    fs::create_dir(constants::GLOBAL.as_path())?;
-  }
-
-  if !constants::KEYS.as_path().exists() {
-    write(Keys {
-      encrypted: false,
-      modrinth: None,
-      github: None,
-    })?;
-  }
-
-  Ok(())
-}
-
-pub fn read_raw() -> Result<Keys, error::DeepslateError> {
-  return Ok(toml::from_str(
-    fs::read_to_string(constants::KEYS.as_path())?.as_str(),
-  )?);
-}
-
-pub fn write(keys: Keys) -> Result<(), error::DeepslateError> {
-  Ok(fs::write(
-    constants::KEYS.as_path(),
-    toml::to_string(&keys)?,
-  )?)
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keys {
@@ -45,6 +15,31 @@ pub struct Keys {
 }
 
 impl Keys {
+  pub fn initialize() -> Result<(), error::DeepslateError> {
+    if !constants::GLOBAL.as_path().exists() {
+      fs::create_dir(constants::GLOBAL.as_path())?;
+    }
+
+    if !constants::KEYS.as_path().exists() {
+      Keys::write(Keys::default())?;
+    }
+
+    Ok(())
+  }
+
+  pub fn read_raw() -> Result<Keys, error::DeepslateError> {
+    return Ok(toml::from_str(
+      fs::read_to_string(constants::KEYS.as_path())?.as_str(),
+    )?);
+  }
+
+  pub fn write(keys: Keys) -> Result<(), error::DeepslateError> {
+    Ok(fs::write(
+      constants::KEYS.as_path(),
+      toml::to_string(&keys)?,
+    )?)
+  }
+
   pub fn encrypt(plaintext: String, key: String) -> Result<String, error::DeepslateError> {
     let encryptor = Encryptor::with_user_passphrase(Secret::new(key));
 
@@ -97,12 +92,14 @@ impl Keys {
       },
     })
   }
+}
 
-  pub fn to_string(&self) -> String {
-    return format!(
-      "Modrinth: {}\nGitHub: {}",
-      self.modrinth.clone().unwrap_or("none".to_string()),
-      self.github.clone().unwrap_or("none".to_string())
-    );
+impl Default for Keys {
+  fn default() -> Self {
+    Keys {
+      encrypted: false,
+      modrinth: None,
+      github: None,
+    }
   }
 }

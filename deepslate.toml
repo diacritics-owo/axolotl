@@ -1,0 +1,5 @@
+modrinth = "modrinth project id"
+github = ["user", "repo"]
+
+[changelog]
+type = "editor"

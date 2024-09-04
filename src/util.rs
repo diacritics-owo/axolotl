@@ -1,7 +1,4 @@
-use crate::{
-  error,
-  keys::{self, Keys},
-};
+use crate::{error, keys::Keys};
 use inquire::{Password, PasswordDisplayMode};
 
 pub fn read_key() -> Result<String, error::DeepslateError> {
@@ -19,7 +16,7 @@ pub fn read_key_confirmation(confirm: bool) -> Result<String, error::DeepslateEr
 }
 
 pub fn get_keys() -> Result<(Keys, Option<String>), error::DeepslateError> {
-  let keys = keys::read_raw()?;
+  let keys = Keys::read_raw()?;
 
   if keys.encrypted {
     let key = read_key()?;

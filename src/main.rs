@@ -1,10 +1,15 @@
+mod configuration;
 mod constants;
 mod error;
 mod keys;
 mod util;
 
+use std::{env::current_dir, fs};
+
 use clap::{Parser, Subcommand, ValueEnum};
-use inquire::{Confirm, Text};
+use configuration::{Changelog, Configuration};
+use inquire::{Confirm, Editor, Text};
+use keys::Keys;
 use util::get_keys;
 
 #[derive(Parser, Debug)]
@@ -16,12 +21,30 @@ struct Arguments {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+  /// Manage mods
+  #[clap(visible_alias = "m")]
+  Mod {
+    #[command(subcommand)]
+    command: ModCommands,
+  },
+
   /// Manage keys and access tokens
   #[clap(visible_alias = "k")]
   Keys {
     #[command(subcommand)]
     command: KeyCommands,
   },
+}
+
+#[derive(Subcommand, Debug)]
+enum ModCommands {
+  /// Create a configuration file
+  #[clap(visible_alias = "i")]
+  Init,
+
+  /// Publish the mod
+  #[clap(visible_alias = "p")]
+  Publish,
 }
 
 #[derive(Subcommand, Debug)]
@@ -76,13 +99,40 @@ enum Distributor {
 }
 
 fn main() -> Result<(), error::DeepslateError> {
-  keys::initialize()?;
+  Keys::initialize()?;
 
   let arguments = Arguments::parse();
 
   match arguments.command {
+    Commands::Mod { command } => match command {
+      ModCommands::Init => {
+        if Configuration::exists()? {
+          println!(
+            "Found pre-existing configuration file {}",
+            constants::CONFIGURATION
+          );
+        } else {
+          Configuration::write(Configuration::default())?;
+        }
+      }
+      // TODO
+      ModCommands::Publish => {
+        let configuration = Configuration::read()?;
+        let changelog = match configuration.changelog {
+          Some(changelog) => match changelog {
+            Changelog::File { file } => Some(fs::read_to_string(current_dir()?.join(file))?),
+            Changelog::Editor => Some(Editor::new("Write the changelog").prompt()?),
+          },
+          None => None,
+        };
+
+        if let Some(id) = configuration.modrinth {}
+
+        if let Some((user, repo)) = configuration.github {}
+      }
+    },
     Commands::Keys { command } => {
-      let raw = keys::read_raw()?;
+      let raw = Keys::read_raw()?;
 
       match command {
         KeyCommands::Print => {
@@ -91,7 +141,7 @@ fn main() -> Result<(), error::DeepslateError> {
             .with_help_message("Your keys will be printed to stdout in plaintext form")
             .prompt()?
           {
-            println!("{}", util::get_keys()?.0.to_string());
+            println!("{:#?}", util::get_keys()?.0);
           }
         }
         KeyCommands::Encryption { command } => match command {
@@ -99,14 +149,14 @@ fn main() -> Result<(), error::DeepslateError> {
             if raw.encrypted {
               println!("Your keys are already encrypted - disable and re-enable encryption to change the key")
             } else {
-              keys::write(raw.encrypted(util::read_key_confirmation(true)?)?)?
+              Keys::write(raw.encrypted(util::read_key_confirmation(true)?)?)?
             }
           }
           Some(EncryptionCommands::Disable) => {
             if !raw.encrypted {
               println!("Your keys have not been encrypted")
             } else {
-              keys::write(raw.decrypted(util::read_key()?)?)?
+              Keys::write(raw.decrypted(util::read_key()?)?)?
             }
           }
           None => println!(
@@ -127,7 +177,7 @@ fn main() -> Result<(), error::DeepslateError> {
             keys = keys.encrypted(key)?;
           }
 
-          keys::write(keys)?;
+          Keys::write(keys)?;
         }
         KeyCommands::Remove { distributor } => {
           let (mut keys, key) = get_keys()?;
@@ -141,7 +191,7 @@ fn main() -> Result<(), error::DeepslateError> {
             keys = keys.encrypted(key)?;
           }
 
-          keys::write(keys)?;
+          Keys::write(keys)?;
         }
       }
     }
