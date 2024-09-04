@@ -25,4 +25,10 @@ pub enum DeepslateError {
 
   #[error("failed to decode base64")]
   Base64DecodeError(#[from] base64::DecodeError),
+
+  #[error("github api request failed")]
+  GithubError(#[from] octocrab::Error),
+
+  #[error("{0}")]
+  Error(String),
 }

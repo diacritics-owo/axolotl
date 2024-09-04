@@ -10,14 +10,12 @@ mod keys;
 mod util;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use configuration::{Changelog, Configuration};
+use configuration::{Changelog, Configuration, GitHub};
 use inquire::{Confirm, Editor, Text};
 use keys::Keys;
-use std::{
-  env::{self, current_dir},
-  fs, process,
-};
-use util::get_keys;
+use octocrab::Octocrab;
+use std::{env, fs, process};
+use util::{assert_exists, get_keys};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -105,8 +103,9 @@ enum Distributor {
   GitHub,
 }
 
-fn main() {
-  match run() {
+#[tokio::main]
+async fn main() {
+  match run().await {
     Ok(_) => (),
     Err(error) => {
       error!("{}", error);
@@ -115,7 +114,7 @@ fn main() {
   }
 }
 
-fn run() -> Result<(), error::DeepslateError> {
+async fn run() -> Result<(), error::DeepslateError> {
   env::set_var("RUST_LOG", "info");
 
   pretty_env_logger::init();
@@ -144,20 +143,73 @@ fn run() -> Result<(), error::DeepslateError> {
           constants::CONFIGURATION
         );
       }
-      // TODO
       ModCommands::Publish => {
         let configuration = Configuration::read()?;
+        let (keys, _) = get_keys()?;
+
         let changelog = match configuration.changelog {
           Some(changelog) => match changelog {
-            Changelog::File { file } => Some(fs::read_to_string(current_dir()?.join(file))?),
+            Changelog::File { file } => {
+              assert_exists(file.clone())?;
+              Some(fs::read_to_string(file)?)
+            }
             Changelog::Editor => Some(Editor::new("Write the changelog").prompt()?),
           },
           None => None,
         };
 
-        if let Some(id) = configuration.modrinth {}
+        let version = Text::new("Version").prompt()?;
+        let tag = format!("v{}", version);
 
-        if let Some((user, repo)) = configuration.github {}
+        let asset_name = configuration
+          .artifact
+          .pattern
+          .replace(constants::VERSION_REPLACE, version.as_str());
+        let artifact = configuration.artifact.folder.join(asset_name.clone());
+
+        assert_exists(artifact.clone())?;
+
+        if let Some(GitHub {
+          repo: (user, repo),
+          draft,
+        }) = configuration.github
+        {
+          if let Some(token) = keys.github {
+            let octocrab = Octocrab::builder().personal_token(token).build()?;
+            let repo = octocrab.repos(user, repo);
+            let releases = repo.releases();
+
+            info!("Creating release");
+
+            let release = releases
+              .create(&tag.clone())
+              .name(&tag.clone())
+              .body(&changelog.unwrap_or_default())
+              .draft(draft)
+              .send()
+              .await?;
+
+            info!(
+              "Created release{} at {}",
+              if draft { " draft" } else { "" },
+              release.html_url
+            );
+
+            info!("Uploading artifact");
+
+            let asset = releases
+              .upload_asset(release.id.0, &asset_name, fs::read(artifact)?.into())
+              .label(&asset_name)
+              .send()
+              .await?;
+
+            info!("Uploaded artifact to {}", asset.browser_download_url);
+          } else {
+            error!("A GitHub token was not provided, skipping distributing to GitHub Releases");
+          }
+        }
+
+        // if let Some(id) = configuration.modrinth {}
       }
     },
     Commands::Keys { command } => {
@@ -176,7 +228,7 @@ fn run() -> Result<(), error::DeepslateError> {
         KeyCommands::Encryption { command } => match command {
           Some(EncryptionCommands::Enable) => {
             if raw.encrypted {
-              info!("Your keys are already encrypted - disable and re-enable encryption to change the key")
+              info!("Your keys are already encrypted - disable and re-enable encryption to change the passphrase")
             } else {
               Keys::write(raw.encrypted(util::read_key_confirmation(true)?)?)?;
               info!("Encryption has been enabled");
