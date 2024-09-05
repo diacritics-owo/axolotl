@@ -12,13 +12,13 @@ mod modrinth;
 mod util;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use configuration::{Changelog, Configuration, GitHub, Modrinth};
+use configuration::{Changelog, Configuration, GitHub, Modrinth, ModrinthDependency};
 use file::ToRead;
 use inquire::{Confirm, Editor, Select, Text};
 use keys::Keys;
 use modrinth_api::{
   apis,
-  models::{self, CreatableVersion},
+  models::{self, CreatableVersion, VersionDependency},
 };
 use octocrab::Octocrab;
 use reqwest::{multipart::Part, Body};
@@ -223,7 +223,12 @@ async fn run() -> Result<(), error::AxolotlError> {
           }
         }
 
-        if let Some(Modrinth { id, featured }) = configuration.modrinth {
+        if let Some(Modrinth {
+          id,
+          featured,
+          dependencies,
+        }) = configuration.modrinth
+        {
           if let Some(token) = keys.modrinth {
             let config = apis::configuration::Configuration::with_api_key(token)?;
 
@@ -240,7 +245,10 @@ async fn run() -> Result<(), error::AxolotlError> {
                 name: tag,
                 version_number: version,
                 changelog: Some(changelog),
-                dependencies: vec![], // TODO
+                dependencies: dependencies
+                  .iter()
+                  .map(|d| <ModrinthDependency as Into<VersionDependency>>::into(d.clone()))
+                  .collect(),
                 game_versions: configuration.artifact.game_versions,
                 version_type: version_type.into(),
                 loaders: configuration.artifact.loaders,

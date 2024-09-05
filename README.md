@@ -1,10 +1,10 @@
-# Axolotol
+# Axolotl
 
 A CLI tool for mod distribution
 
 ## Table of Contents
 
-- [Axolotol](#axolotol)
+- [Axolotl](#axolotl)
   - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
   - [Setup](#setup)
@@ -54,13 +54,19 @@ type = "editor" # required; "editor" (prompt to open an editor when publishing) 
 # file = "path/to/file.md" - required if type is "file"
 
 [modrinth] # optional
-id = "modrinth project id" # required; the modrinth project id of the target project (can be found by clicking the three dots on the project page)
+id = "modrinth project id" # required; the modrinth project id of the target project
 featured = true # optional (default true); whether the new version should be featured
+
+[[modrinth.dependencies]] # optional (may be present multiple times)
+id = "P7dR8mSH" # required; the modrinth project id of the dependency (this one is fabric-api)
+dependency_type = "required" # required; one of "required", "optional", "incompatible", or "embedded"
 
 [github] # optional
 repo = ["user", "repo"] # required; the target repository
 draft = true # optional (default true); whether the release should be marked as a draft to review before publishing
 ```
+
+Note that Modrinth project IDs may be found on a project page with the three dots > Copy ID.
 
 ### Publishing
 

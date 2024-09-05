@@ -1,4 +1,5 @@
 use crate::{constants, error, file::ToRead};
+use modrinth_api::models::{version_dependency::DependencyType, VersionDependency};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
@@ -24,6 +25,24 @@ pub struct Modrinth {
   pub id: String,
   #[serde(default = "default_featured")]
   pub featured: bool,
+  pub dependencies: Vec<ModrinthDependency>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModrinthDependency {
+  id: String,
+  dependency_type: DependencyType,
+}
+
+impl Into<VersionDependency> for ModrinthDependency {
+  fn into(self) -> VersionDependency {
+    VersionDependency {
+      version_id: None,
+      project_id: Some(Some(self.id)),
+      file_name: None,
+      dependency_type: self.dependency_type,
+    }
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,6 +78,10 @@ impl Default for Configuration {
       modrinth: Some(Modrinth {
         id: "modrinth project id".to_string(),
         featured: true,
+        dependencies: vec![ModrinthDependency {
+          id: "P7dR8mSH".to_string(),
+          dependency_type: DependencyType::Required,
+        }],
       }),
       github: Some(GitHub {
         repo: ("user".to_string(), "repo".to_string()),
