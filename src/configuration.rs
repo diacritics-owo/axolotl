@@ -14,11 +14,16 @@ pub struct Configuration {
 pub struct Artifact {
   pub folder: PathBuf,
   pub pattern: String,
+  pub game_versions: Vec<String>,
+  pub loaders: Vec<String>,
 }
 
+// TODO: drafts
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Modrinth {
   pub id: String,
+  #[serde(default = "default_featured")]
+  pub featured: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +34,11 @@ pub struct GitHub {
 }
 
 fn default_draft() -> bool {
-  false
+  true
+}
+
+fn default_featured() -> bool {
+  true
 }
 
 impl Default for Configuration {
@@ -38,10 +47,18 @@ impl Default for Configuration {
       artifact: Artifact {
         folder: PathBuf::from("build/libs"),
         pattern: "mod-#.jar".to_string(),
+        game_versions: vec!["1.xx".to_string()],
+        loaders: vec![
+          "fabric".to_string(),
+          "quilt".to_string(),
+          "forge".to_string(),
+          "neoforge".to_string(),
+        ],
       },
       changelog: Some(Changelog::Editor),
       modrinth: Some(Modrinth {
         id: "modrinth project id".to_string(),
+        featured: true,
       }),
       github: Some(GitHub {
         repo: ("user".to_string(), "repo".to_string()),

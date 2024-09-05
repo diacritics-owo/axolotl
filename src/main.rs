@@ -8,15 +8,22 @@ mod constants;
 mod error;
 mod file;
 mod keys;
+mod modrinth;
 mod util;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use configuration::{Changelog, Configuration, GitHub};
+use configuration::{Changelog, Configuration, GitHub, Modrinth};
 use file::ToRead;
 use inquire::{Confirm, Editor, Text};
 use keys::Keys;
+use modrinth_api::{
+  apis,
+  models::{self, CreatableVersion},
+};
 use octocrab::Octocrab;
+use reqwest::{multipart::Part, Body};
 use std::{env, process};
+use tokio_util::codec::{BytesCodec, FramedRead};
 use util::get_keys;
 
 #[derive(Parser, Debug)]
@@ -184,7 +191,7 @@ async fn run() -> Result<(), error::DeepslateError> {
             let release = releases
               .create(&tag.clone())
               .name(&tag.clone())
-              .body(&changelog.unwrap_or_default())
+              .body(&changelog.clone().unwrap_or_default())
               .draft(draft)
               .send()
               .await?;
@@ -209,7 +216,50 @@ async fn run() -> Result<(), error::DeepslateError> {
           }
         }
 
-        // if let Some(id) = configuration.modrinth {}
+        if let Some(Modrinth { id, featured }) = configuration.modrinth {
+          if let Some(token) = keys.modrinth {
+            let config = apis::configuration::Configuration::with_api_key(token)?;
+
+            apis::projects_api::check_project_validity(&config, &id).await?;
+
+            // TODO
+            let static_asset_name: &'static str = Box::leak(asset_name.clone().into_boxed_str());
+
+            info!("Uploading version");
+
+            let version = modrinth::create_version(
+              &config,
+              CreatableVersion {
+                name: tag,
+                version_number: version,
+                changelog: Some(changelog),
+                dependencies: vec![], // TODO
+                game_versions: configuration.artifact.game_versions,
+                version_type: models::creatable_version::VersionType::Release, // TODO (also for gh)
+                loaders: configuration.artifact.loaders,
+                featured,
+                status: Some(models::creatable_version::Status::Listed),
+                requested_status: None,
+                project_id: id,
+                file_parts: vec![asset_name],
+                primary_file: None,
+              },
+              Part::stream(Body::wrap_stream(FramedRead::new(
+                artifact.open().await?,
+                BytesCodec::new(),
+              )))
+              .file_name(static_asset_name),
+            )
+            .await?;
+
+            info!(
+              "Uploaded version to https://modrinth.com/project/{}/version/{}",
+              version.project_id, version.id
+            )
+          } else {
+            error!("A Modrinth token was not provided, skipping distributing to Modrinth");
+          }
+        }
       }
     },
     Commands::Keys { command } => {

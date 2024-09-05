@@ -1,3 +1,5 @@
+use tokio::fs::File;
+
 use crate::error;
 use std::{fs, io, path::Path};
 
@@ -17,5 +19,9 @@ impl<P: AsRef<Path> + Clone> ToRead<P> {
 
   pub fn read_to_string(&self) -> io::Result<String> {
     fs::read_to_string(self.0.clone())
+  }
+
+  pub async fn open(&self) -> io::Result<File> {
+    File::open(self.0.clone()).await
   }
 }
