@@ -1,5 +1,38 @@
 use crate::{error, keys::Keys};
 use inquire::{Password, PasswordDisplayMode};
+use modrinth_api::models;
+use std::fmt::Display;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VersionType {
+  Release,
+  Beta,
+  Alpha,
+}
+
+impl Into<models::creatable_version::VersionType> for VersionType {
+  fn into(self) -> models::creatable_version::VersionType {
+    match self {
+      Self::Release => models::creatable_version::VersionType::Release,
+      Self::Beta => models::creatable_version::VersionType::Beta,
+      Self::Alpha => models::creatable_version::VersionType::Alpha,
+    }
+  }
+}
+
+impl Display for VersionType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::Release => "Release",
+        Self::Beta => "Beta",
+        Self::Alpha => "Alpha",
+      }
+    )
+  }
+}
 
 pub fn read_key() -> Result<String, error::DeepslateError> {
   read_key_confirmation(false)

@@ -14,7 +14,7 @@ mod util;
 use clap::{Parser, Subcommand, ValueEnum};
 use configuration::{Changelog, Configuration, GitHub, Modrinth};
 use file::ToRead;
-use inquire::{Confirm, Editor, Text};
+use inquire::{Confirm, Editor, Select, Text};
 use keys::Keys;
 use modrinth_api::{
   apis,
@@ -24,7 +24,7 @@ use octocrab::Octocrab;
 use reqwest::{multipart::Part, Body};
 use std::{env, process};
 use tokio_util::codec::{BytesCodec, FramedRead};
-use util::get_keys;
+use util::{get_keys, VersionType};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -170,6 +170,12 @@ async fn run() -> Result<(), error::DeepslateError> {
         let version = Text::new("Version").prompt()?;
         let tag = format!("v{}", version);
 
+        let version_type = Select::new(
+          "Version type",
+          vec![VersionType::Release, VersionType::Beta, VersionType::Alpha],
+        )
+        .prompt()?;
+
         let asset_name = configuration
           .artifact
           .pattern
@@ -193,6 +199,7 @@ async fn run() -> Result<(), error::DeepslateError> {
               .name(&tag.clone())
               .body(&changelog.clone().unwrap_or_default())
               .draft(draft)
+              .prerelease(version_type != VersionType::Release)
               .send()
               .await?;
 
@@ -235,14 +242,14 @@ async fn run() -> Result<(), error::DeepslateError> {
                 changelog: Some(changelog),
                 dependencies: vec![], // TODO
                 game_versions: configuration.artifact.game_versions,
-                version_type: models::creatable_version::VersionType::Release, // TODO (also for gh)
+                version_type: version_type.into(),
                 loaders: configuration.artifact.loaders,
                 featured,
                 status: Some(models::creatable_version::Status::Listed),
                 requested_status: None,
                 project_id: id,
-                file_parts: vec![asset_name],
-                primary_file: None,
+                file_parts: vec![asset_name.clone()],
+                primary_file: Some(asset_name),
               },
               Part::stream(Body::wrap_stream(FramedRead::new(
                 artifact.open().await?,
