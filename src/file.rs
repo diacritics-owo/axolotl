@@ -21,6 +21,10 @@ impl<P: AsRef<Path> + Clone> ToRead<P> {
     fs::read_to_string(self.0.clone())
   }
 
+  pub fn read(&self) -> io::Result<Vec<u8>> {
+    fs::read(self.0.clone())
+  }
+
   pub async fn open(&self) -> io::Result<File> {
     File::open(self.0.clone()).await
   }

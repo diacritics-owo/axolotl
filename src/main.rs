@@ -212,7 +212,7 @@ async fn run() -> Result<(), error::AxolotlError> {
             info!("Uploading artifact");
 
             let asset = releases
-              .upload_asset(release.id.0, &asset_name, artifact.read_to_string()?.into())
+              .upload_asset(release.id.0, &asset_name, artifact.read()?.into())
               .label(&asset_name)
               .send()
               .await?;

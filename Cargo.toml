@@ -1,6 +1,6 @@
 [package]
 name = "axolotl-cli"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "A CLI tool for mod distribution"
 repository = "https://github.com/diacritics-owo/axolotl"
