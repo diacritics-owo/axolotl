@@ -34,9 +34,9 @@ Scopes required for [GitHub](https://github.com/settings/tokens?type=beta):
 - Repositories
   - Contents: read and write
 
-If you chose to use Modrinth, run `axolotl key set modrinth` (or `axolotl k s m`) and enter your Modrinth PAT. If you chose to use Modrinth, run `axolotl key set github` (or `axolotl k s g`) and enter your GitHub PAT.
+If you chose to use Modrinth, run `axolotl key set modrinth` (or `axolotl k s m`) and enter your Modrinth PAT. If you chose to use GitHub, run `axolotl key set github` (or `axolotl k s g`) and enter your GitHub PAT.
 
-To remove a key. run `axolotl key remove <modrinth/github>` (or `axolotl k r <m/g>)`. It will be permanently removed.
+To remove a key, run `axolotl key remove <modrinth/github>` (or `axolotl k r <m/g>)`. It will be permanently removed.
 
 ## Using
 
