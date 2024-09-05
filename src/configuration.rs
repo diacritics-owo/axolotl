@@ -76,16 +76,16 @@ pub enum Changelog {
 }
 
 impl Configuration {
-  pub fn exists() -> Result<bool, error::DeepslateError> {
+  pub fn exists() -> Result<bool, error::AxolotlError> {
     Ok(PathBuf::from(constants::CONFIGURATION).exists())
   }
 
-  pub fn read() -> Result<Self, error::DeepslateError> {
+  pub fn read() -> Result<Self, error::AxolotlError> {
     let file = ToRead::new(constants::CONFIGURATION)?;
     Ok(toml::from_str(&file.read_to_string()?)?)
   }
 
-  pub fn write(configuration: Self) -> Result<(), error::DeepslateError> {
+  pub fn write(configuration: Self) -> Result<(), error::AxolotlError> {
     Ok(fs::write(
       constants::CONFIGURATION,
       toml::to_string(&configuration)?,

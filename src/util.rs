@@ -34,11 +34,11 @@ impl Display for VersionType {
   }
 }
 
-pub fn read_key() -> Result<String, error::DeepslateError> {
+pub fn read_key() -> Result<String, error::AxolotlError> {
   read_key_confirmation(false)
 }
 
-pub fn read_key_confirmation(confirm: bool) -> Result<String, error::DeepslateError> {
+pub fn read_key_confirmation(confirm: bool) -> Result<String, error::AxolotlError> {
   let mut password =
     Password::new("Enter your passphrase").with_display_mode(PasswordDisplayMode::Masked);
 
@@ -49,7 +49,7 @@ pub fn read_key_confirmation(confirm: bool) -> Result<String, error::DeepslateEr
   Ok(password.prompt()?)
 }
 
-pub fn get_keys() -> Result<(Keys, Option<String>), error::DeepslateError> {
+pub fn get_keys() -> Result<(Keys, Option<String>), error::AxolotlError> {
   let keys = Keys::read_raw()?;
 
   if keys.encrypted {

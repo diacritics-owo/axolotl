@@ -1,4 +1,4 @@
-use crate::error::{self, DeepslateError};
+use crate::error::{self, AxolotlError};
 use modrinth_api::{
   apis::{self, configuration, versions_api::CreateVersionError, ResponseContent},
   models,
@@ -9,7 +9,7 @@ pub async fn create_version(
   configuration: &configuration::Configuration,
   data: models::CreatableVersion,
   file: Part,
-) -> Result<models::Version, error::DeepslateError> {
+) -> Result<models::Version, error::AxolotlError> {
   let local_var_configuration = configuration;
 
   let local_var_client = &local_var_configuration.client;
@@ -44,7 +44,7 @@ pub async fn create_version(
 
   if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
     serde_json::from_str(&local_var_content)
-      .map_err(|error| DeepslateError::ModrinthCreateVersionError(apis::Error::Serde(error)))
+      .map_err(|error| AxolotlError::ModrinthCreateVersionError(apis::Error::Serde(error)))
   } else {
     let local_var_entity: Option<CreateVersionError> =
       serde_json::from_str(&local_var_content).ok();
@@ -54,7 +54,7 @@ pub async fn create_version(
       entity: local_var_entity,
     };
 
-    Err(DeepslateError::ModrinthCreateVersionError(
+    Err(AxolotlError::ModrinthCreateVersionError(
       apis::Error::ResponseError(local_var_error),
     ))
   }

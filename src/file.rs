@@ -6,11 +6,11 @@ use std::{fs, io, path::Path};
 pub struct ToRead<P: AsRef<Path>>(P);
 
 impl<P: AsRef<Path> + Clone> ToRead<P> {
-  pub fn new(path: P) -> Result<Self, error::DeepslateError> {
+  pub fn new(path: P) -> Result<Self, error::AxolotlError> {
     if path.as_ref().exists() {
       Ok(Self(path))
     } else {
-      Err(error::DeepslateError::Error(format!(
+      Err(error::AxolotlError::Error(format!(
         "Could not find the file {}",
         path.as_ref().to_str().unwrap_or("<failed to get path>")
       )))

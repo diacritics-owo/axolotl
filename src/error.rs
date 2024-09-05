@@ -4,7 +4,7 @@ use modrinth_api::apis::{
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum DeepslateError {
+pub enum AxolotlError {
   #[error("error while reading user input: {0:#?}")]
   InputError(#[from] inquire::InquireError),
 

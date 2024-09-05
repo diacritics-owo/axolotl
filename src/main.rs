@@ -123,7 +123,7 @@ async fn main() {
   }
 }
 
-async fn run() -> Result<(), error::DeepslateError> {
+async fn run() -> Result<(), error::AxolotlError> {
   env::set_var("RUST_LOG", "info");
 
   pretty_env_logger::init();

@@ -15,7 +15,7 @@ pub struct Keys {
 }
 
 impl Keys {
-  pub fn initialize() -> Result<(), error::DeepslateError> {
+  pub fn initialize() -> Result<(), error::AxolotlError> {
     if !constants::GLOBAL.as_path().exists() {
       fs::create_dir(constants::GLOBAL.as_path())?;
     }
@@ -27,19 +27,19 @@ impl Keys {
     Ok(())
   }
 
-  pub fn read_raw() -> Result<Keys, error::DeepslateError> {
+  pub fn read_raw() -> Result<Keys, error::AxolotlError> {
     let file = ToRead::new(constants::KEYS.as_path())?;
     return Ok(toml::from_str(file.read_to_string()?.as_str())?);
   }
 
-  pub fn write(keys: Keys) -> Result<(), error::DeepslateError> {
+  pub fn write(keys: Keys) -> Result<(), error::AxolotlError> {
     Ok(fs::write(
       constants::KEYS.as_path(),
       toml::to_string(&keys)?,
     )?)
   }
 
-  pub fn encrypt(plaintext: String, key: String) -> Result<String, error::DeepslateError> {
+  pub fn encrypt(plaintext: String, key: String) -> Result<String, error::AxolotlError> {
     let encryptor = Encryptor::with_user_passphrase(Secret::new(key));
 
     let mut encrypted = vec![];
@@ -50,7 +50,7 @@ impl Keys {
     Ok(BASE64_STANDARD.encode(encrypted))
   }
 
-  pub fn decrypt(encrypted: String, key: String) -> Result<String, error::DeepslateError> {
+  pub fn decrypt(encrypted: String, key: String) -> Result<String, error::AxolotlError> {
     let decryptor = BASE64_STANDARD.decode(encrypted)?;
     let decryptor = match Decryptor::new(&*decryptor)? {
       Decryptor::Passphrase(d) => d,
@@ -64,7 +64,7 @@ impl Keys {
     Ok(String::from_utf8(decrypted)?)
   }
 
-  pub fn encrypted(&self, key: String) -> Result<Keys, error::DeepslateError> {
+  pub fn encrypted(&self, key: String) -> Result<Keys, error::AxolotlError> {
     Ok(Keys {
       encrypted: true,
       modrinth: match self.modrinth.clone() {
@@ -78,7 +78,7 @@ impl Keys {
     })
   }
 
-  pub fn decrypted(&self, key: String) -> Result<Keys, error::DeepslateError> {
+  pub fn decrypted(&self, key: String) -> Result<Keys, error::AxolotlError> {
     Ok(Keys {
       encrypted: false,
       modrinth: match self.modrinth.clone() {
