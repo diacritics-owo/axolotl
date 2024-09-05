@@ -3,6 +3,12 @@ name = "axolotl-cli"
 version = "1.0.0"
 edition = "2021"
 description = "A CLI tool for mod distribution"
+repository = "https://github.com/diacritics-owo/axolotl"
+readme = "README.md"
+license = "MIT"
+keywords = ["minecraft", "cli", "modrinth", "mod"]
+categories = ["command-line-utilities"]
+authors = ["diacritics-owo"]
 
 [[bin]]
 name = "axolotl"
